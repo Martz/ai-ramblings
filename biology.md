@@ -4,9 +4,9 @@ This is one of the most profound shifts in human history - we're transitioning f
 
 **The Fundamental Paradigm Shift:**
 
-**Traditional Biology:** "What does nature do?"
-**Computational Biology:** "How can we model what nature does?"
-**Computable Biology:** "What do we WANT biology to do?"
+- **Traditional Biology:** "What does nature do?"
+- **Computational Biology:** "How can we model what nature does?"
+- **Computable Biology:** "What do we WANT biology to do?"
 
 It's the difference between reading code, understanding code, and writing entirely new programs.
 
