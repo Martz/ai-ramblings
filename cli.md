@@ -159,6 +159,64 @@ table.push(
 console.log(table.toString());
 ```
 
+#### CLI-Progress
+Highly customizable progress bars with multiple styles and features:
+
+```typescript
+import cliProgress from 'cli-progress';
+import colors from 'ansi-colors';
+
+// Simple progress bar
+const progressBar = new cliProgress.SingleBar({
+  format: 'Progress |' + colors.cyan('{bar}') + '| {percentage}% | {value}/{total} Files',
+  barCompleteChar: '\u2588',
+  barIncompleteChar: '\u2591',
+  hideCursor: true
+});
+
+progressBar.start(200, 0);
+progressBar.update(100);
+progressBar.stop();
+
+// Multi-bar for parallel operations
+const multibar = new cliProgress.MultiBar({
+  clearOnComplete: false,
+  hideCursor: true,
+  format: ' {bar} | {filename} | {percentage}%',
+}, cliProgress.Presets.shades_grey);
+
+const bar1 = multibar.create(200, 0, {filename: "file1.txt"});
+const bar2 = multibar.create(300, 0, {filename: "file2.txt"});
+
+// Update bars independently
+bar1.update(100);
+bar2.update(150);
+
+// Custom format with time estimation
+const downloadBar = new cliProgress.SingleBar({
+  format: 'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} MB | Speed: {speed}',
+  barCompleteChar: '\u2588',
+  barIncompleteChar: '\u2591',
+  fps: 5,
+  stream: process.stdout,
+  barsize: 30
+});
+
+downloadBar.start(100, 0, {
+  speed: "N/A"
+});
+
+// Update with custom payload
+downloadBar.update(50, {
+  speed: "2.5 MB/s"
+});
+
+// Presets available
+const presetBar = new cliProgress.SingleBar({}, cliProgress.Presets.rect);
+const legacyBar = new cliProgress.SingleBar({}, cliProgress.Presets.legacy);
+const shadedBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+```
+
 #### Ora
 Elegant terminal spinners:
 
@@ -418,13 +476,34 @@ console.log(chalk.yellow('📝 Note: Configuration file not found, using default
 
 #### Progress Indication
 ```typescript
-// For determinate progress
-const progressBar = new ProgressBar(':bar :percent :etas', {
-  total: files.length,
-  width: 40,
-  complete: '█',
-  incomplete: '░'
+// For determinate progress with cli-progress
+import cliProgress from 'cli-progress';
+
+const progressBar = new cliProgress.SingleBar({
+  format: 'Progress |{bar}| {percentage}% | {value}/{total} Files | Duration: {duration}s',
+  barCompleteChar: '\u2588',
+  barIncompleteChar: '\u2591',
+  hideCursor: true
 });
+
+progressBar.start(files.length, 0);
+
+for (let i = 0; i < files.length; i++) {
+  await processFile(files[i]);
+  progressBar.update(i + 1);
+}
+
+progressBar.stop();
+
+// For multiple concurrent operations
+const multibar = new cliProgress.MultiBar({
+  clearOnComplete: false,
+  hideCursor: true
+}, cliProgress.Presets.shades_classic);
+
+const uploadBar = multibar.create(100, 0);
+const downloadBar = multibar.create(100, 0);
+const processBar = multibar.create(100, 0);
 
 // For indeterminate progress
 const spinner = ora({
@@ -627,16 +706,31 @@ class DataCache {
 
 ```typescript
 import { Transform } from 'stream';
+import cliProgress from 'cli-progress';
 
 const processLargeFile = async (filepath: string) => {
+  const stats = await fs.stat(filepath);
+  const progressBar = new cliProgress.SingleBar({
+    format: 'Processing |{bar}| {percentage}% | {value}/{total} bytes',
+  });
+  
+  progressBar.start(stats.size, 0);
+  
   const readStream = fs.createReadStream(filepath);
+  let processed = 0;
+  
   const transformStream = new Transform({
     transform(chunk, encoding, callback) {
+      processed += chunk.length;
+      progressBar.update(processed);
+      
       // Process chunk
-      const processed = processChunk(chunk);
-      callback(null, processed);
+      const processedChunk = processChunk(chunk);
+      callback(null, processedChunk);
     }
   });
+  
+  transformStream.on('finish', () => progressBar.stop());
   
   return pipeline(readStream, transformStream, process.stdout);
 };
@@ -711,6 +805,6 @@ useInput((input, key) => {
 
 ## Conclusion
 
-Building high-quality CLIs requires careful consideration of user experience, performance, and accessibility. By leveraging modern tools like Ink, Commander, and the ecosystem of CLI utilities, you can create powerful, user-friendly command-line interfaces that delight developers and users alike.
+Building high-quality CLIs requires careful consideration of user experience, performance, and accessibility. By leveraging modern tools like Ink, Commander, cli-progress, and the ecosystem of CLI utilities, you can create professional command-line interfaces that are both powerful and user-friendly.
 
 Remember: A great CLI feels intuitive to beginners while providing power features for advanced users. Progressive disclosure, intelligent defaults, and consistent patterns are key to achieving this balance.
